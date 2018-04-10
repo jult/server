@@ -123,4 +123,38 @@ class LDAPContext implements Context {
 		$backend = (string)simplexml_load_string($this->response->getBody())->data[0]->backend;
 		PHPUnit_Framework_Assert::assertEquals('LDAP', $backend);
 	}
+
+	/**
+	 * @Given /^modify LDAP configuration$/
+	 */
+	public function modifyLDAPConfiguration(TableNode $table) {
+		$originalAsAn = $this->currentUser;
+		$this->asAn('admin');
+		foreach($table->getRows() as &$row) {
+			$row[0] = 'configData[' . $row[0] . ']';
+		}
+		$this->settingTheLDAPConfigurationTo($table);
+		$this->asAn($originalAsAn);
+	}
+
+	/**
+	 * @Given /^the group result should$/
+	 */
+	public function theGroupResultShould(TableNode $expectations) {
+		$groupsIncluded = [];
+		$groupsExcluded = [];
+		foreach($expectations->getRows() as $groupExpectation) {
+			if((int)$groupExpectation[1] === 1) {
+				$groupsIncluded[] = $groupExpectation[0];
+			} else {
+				$groupsExcluded[] = $groupExpectation[0];
+			}
+		}
+
+		$listReturnedGroups = simplexml_load_string($this->response->getBody())->data[0]->groups[0]->element;
+		$extractedGroupsArray = json_decode(json_encode($listReturnedGroups), 1);
+
+		PHPUnit_Framework_Assert::assertEquals($groupsIncluded, $extractedGroupsArray, "", 0.0, 10, true);
+		PHPUnit_Framework_Assert::assertNotEquals($groupsExcluded, $extractedGroupsArray, "", 0.0, 10, true);
+	}
 }

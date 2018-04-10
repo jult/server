@@ -203,6 +203,13 @@ class DBLockingProvider extends AbstractLockingProvider {
 				'UPDATE `*PREFIX*file_locks` SET `lock` = 0 WHERE `key` = ? AND `lock` = -1',
 				[$path]
 			);
+		} else if (\OC::$CLI) {
+			$query = $this->connection->getQueryBuilder();
+			$query->update('file_locks')
+				->set('lock', $query->createFunction('`lock` -1'))
+				->where($query->expr()->eq('key', $query->createNamedParameter($path)))
+				->andWhere($query->expr()->gt('lock', new Literal(0)));
+			$query->execute();
 		}
 	}
 
